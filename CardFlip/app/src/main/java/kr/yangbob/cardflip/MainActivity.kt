@@ -32,6 +32,10 @@ class MainActivity : AppCompatActivity() {
 }
 
 class ViewPagerHolder(private val binding: ItemPagerBinding) : RecyclerView.ViewHolder(binding.root) {
+    private val textView = binding.textView
+    private val card = binding.card
+    private val btnAnswer = binding.btnShowAnswer
+
     private var isFront = true
     private lateinit var data: Pair<String, String>
     private val halfTime: Long = 400
@@ -41,27 +45,25 @@ class ViewPagerHolder(private val binding: ItemPagerBinding) : RecyclerView.View
         this.data = data
         binding.string = data.first
         isFront = true
-        binding.textView.rotationY = 0f
-        binding.btnTest.rotationY = 0f
-        binding.card.rotationY = 0f
-        binding.card.cameraDistance = (10 * binding.card.width).toFloat()
 
-        binding.btnShowAnswer.setOnClickListener {
+        textView.rotationY = 0f
+        card.rotationY = 0f
+
+        btnAnswer.setOnClickListener {
+            card.cameraDistance = (10 * binding.card.width).toFloat()
             if(isFront) {
-                binding.textView.animate().setDuration(halfTime).alpha(1.0f).withEndAction{
+                textView.animate().setDuration(halfTime).alpha(1.0f).withEndAction{
                     binding.string = data.second
-                    binding.textView.rotationY = 180f
-                    binding.btnTest.rotationY = 180f
+                    textView.rotationY = -180f
                 }
-                binding.card.animate().setDuration(fullTime).rotationY(180f)
+                card.animate().setDuration(fullTime).rotationY(-180f)
             }
             else {
-                binding.textView.animate().setDuration(halfTime).alpha(1.0f).withEndAction{
+                textView.animate().setDuration(halfTime).alpha(1.0f).withEndAction{
                     binding.string = data.first
-                    binding.textView.rotationY = 0f
-                    binding.btnTest.rotationY = 0f
+                    textView.rotationY = 0f
                 }
-                binding.card.animate().setDuration(fullTime).rotationY(0f)
+                card.animate().setDuration(fullTime).rotationY(0f)
             }
             isFront = !isFront
         }
