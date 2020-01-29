@@ -1,79 +1,83 @@
 package kr.yangbob.cardflip
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.View
 import android.view.ViewGroup
-import androidx.fragment.app.Fragment
-import androidx.fragment.app.FragmentManager
+import androidx.appcompat.app.AppCompatActivity
+import androidx.databinding.DataBindingUtil
+import androidx.recyclerview.widget.RecyclerView
+import androidx.viewpager2.widget.ViewPager2
 import kotlinx.android.synthetic.main.activity_main.*
-import java.util.zip.Inflater
+import kr.yangbob.cardflip.databinding.ItemPagerBinding
 
-class MainActivity : AppCompatActivity(), FragmentManager.OnBackStackChangedListener {
-
-    var isShowingBackLayout = false
+class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        if(savedInstanceState == null){
-            supportFragmentManager
-                .beginTransaction()
-                .add(R.id.flip_layout, FlipFront())
-                .commit()
-        } else {
-            isShowingBackLayout = supportFragmentManager.backStackEntryCount > 0
-        }
+        val dataList = listOf(
+            "문제1" to "정답1",
+            "문제2" to "정답2",
+            "문제3" to "정답3",
+            "문제4" to "정답4",
+            "문제5" to "정답5",
+            "문제6" to "정답6",
+            "문제7" to "정답7"
+        )
 
-        supportFragmentManager.addOnBackStackChangedListener(this)
-        flip_layout.setOnClickListener {
-            flipCard()
-        }
-        val scale = resources.displayMetrics.density
-        flip_layout.cameraDistance = 8000 * scale
-    }
-
-    override fun onBackStackChanged() {
-        isShowingBackLayout = supportFragmentManager.backStackEntryCount > 0
-    }
-
-    private fun flipCard() {
-        if (isShowingBackLayout) {
-            supportFragmentManager.popBackStack()
-            return
-        }
-        isShowingBackLayout = true
-        supportFragmentManager.beginTransaction()
-            //커스텀 애니메이션
-            .setCustomAnimations(
-                R.animator.cardflip_right_in, R.animator.cardflip_right_out,
-                R.animator.cardflip_left_in, R.animator.cardflip_left_out)
-            // 뒷면으로 바뀜
-            .replace(R.id.flip_layout, FlipBack())
-            // 뒤로가기 누르면 앞면을 보여줌
-            .addToBackStack(null)
-            .commit()
+        viewPager.adapter = ViewPagerAdapter(dataList)
+        viewPager.orientation = ViewPager2.ORIENTATION_HORIZONTAL
     }
 }
 
-class FlipFront : Fragment(){
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.flip_front, container, false)
+class ViewPagerHolder(private val binding: ItemPagerBinding) : RecyclerView.ViewHolder(binding.root) {
+    private var isFront = true
+    private lateinit var data: Pair<String, String>
+    private val halfTime: Long = 400
+    private val fullTime: Long = 800
+
+    fun bind(data: Pair<String, String>) {
+        this.data = data
+        binding.string = data.first
+        isFront = true
+        binding.textView.rotationY = 0f
+        binding.btnTest.rotationY = 0f
+        binding.card.rotationY = 0f
+        binding.card.cameraDistance = (10 * binding.card.width).toFloat()
+
+        binding.btnShowAnswer.setOnClickListener {
+            if(isFront) {
+                binding.textView.animate().setDuration(halfTime).alpha(1.0f).withEndAction{
+                    binding.string = data.second
+                    binding.textView.rotationY = 180f
+                    binding.btnTest.rotationY = 180f
+                }
+                binding.card.animate().setDuration(fullTime).rotationY(180f)
+            }
+            else {
+                binding.textView.animate().setDuration(halfTime).alpha(1.0f).withEndAction{
+                    binding.string = data.first
+                    binding.textView.rotationY = 0f
+                    binding.btnTest.rotationY = 0f
+                }
+                binding.card.animate().setDuration(fullTime).rotationY(0f)
+            }
+            isFront = !isFront
+        }
     }
 }
 
-class FlipBack : Fragment(){
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return inflater.inflate(R.layout.flip_back, container, false)
+class ViewPagerAdapter(private val dataList: List<Pair<String, String>>) :
+    RecyclerView.Adapter<ViewPagerHolder>() {
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewPagerHolder {
+        val binding: ItemPagerBinding = DataBindingUtil.inflate(LayoutInflater.from(parent.context), R.layout.item_pager, parent, false)
+        return ViewPagerHolder(binding)
+    }
+
+    override fun getItemCount(): Int = dataList.size
+
+    override fun onBindViewHolder(holder: ViewPagerHolder, position: Int) {
+        holder.bind(dataList[position])
     }
 }
