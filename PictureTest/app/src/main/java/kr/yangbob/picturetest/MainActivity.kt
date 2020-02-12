@@ -2,7 +2,9 @@ package kr.yangbob.picturetest
 
 import android.Manifest
 import android.app.Activity
+import android.content.ContentUris
 import android.content.ContentValues
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -31,19 +33,35 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        checkPermission()
+        checkPermission(
+            this,
+            arrayOf(
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE,
+                Manifest.permission.CAMERA
+            )
+        )
+        val url = "https://cdn.icon-icons.com/image-packs/windowsicon_iconset_43.png"
+        Glide.with(this).load(url).into(image)
+
+//        MediaStore.Images.Media._ID
 
 //        MediaStore 에서 get하는 방법 찾기 ! get 할 때 필요한 ID도 !. 그래야 DB에 저장하고 불러올 수도 있지 ~
         // MediaStore에서 썸네일 얻는 방법도 있음. 공식 문서 참조
 
-        image.setImageURI(Uri.parse("content://media/external/images/media/58")) // 이걸로도 되네
-        if(image.drawable == null) Log.i("TTTTTTTaaaaaaaaTTTTTT", MediaStore.Images.Media.EXTERNAL_CONTENT_URI.toString()) // 이걸로 uri로 설정되는지 체크
-        Log.i("TTTTTTTTTTTTTTTTTTTT", MediaStore.Images.Media.EXTERNAL_CONTENT_URI.toString()) // 27 앞까지가 이 내용 끝에 / 없이
+//        val contentUri: Uri = ContentUris.withAppendedId(
+//            MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+//            id
+//        )
+
+//        image.setImageURI(Uri.parse("content://media/external/images/media/58")) // 이걸로도 되네
+//        if(image.drawable == null) Log.i("TTTTTTTaaaaaaaaTTTTTT", MediaStore.Images.Media.EXTERNAL_CONTENT_URI.toString()) // 이걸로 uri로 설정되는지 체크
+//        Log.i("TTTTTTTTTTTTTTTTTTTT", MediaStore.Images.Media.EXTERNAL_CONTENT_URI.toString()) // 27 앞까지가 이 내용 끝에 / 없이
 
         btnGallery.setOnClickListener {
             val mimeTypes = arrayOf("image/jpeg", "image/png")
             startActivityForResult(Intent().apply {
-                action = Intent.ACTION_GET_CONTENT
+                action = Intent.ACTION_PICK
                 type = MediaStore.Images.Media.CONTENT_TYPE
                 putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
             }, REQUEST_CODE_GALLERY)
@@ -79,16 +97,23 @@ class MainActivity : AppCompatActivity() {
         if (resultCode == Activity.RESULT_OK) {
             when (requestCode) {
                 REQUEST_CODE_GALLERY -> {
-                    val uri = data?.data
-                    Log.i(
-                        "TTTTTTTTTTTTTTTTTTTT",
-                        "onActivityResult() : From Gallery : intent.Uri = $uri"
-                    )
-                    Glide.with(this).load(uri).into(image)
+                    data?.data?.let { uri ->
+                        Log.i(
+                            "TTTTTTTTTTTTTTTTTTTT",
+                            "onActivityResult() : From Gallery : intent.Uri = $uri\n" +
+                                    "ContentUris = ${ContentUris.parseId(uri)}\n" +
+                                    "ExternalUri = ${MediaStore.Images.Media.EXTERNAL_CONTENT_URI}"
+                        )
+
+                        Glide.with(this).load(uri).into(image)
+                    }
                 }
                 REQUEST_CODE_CAMERA -> {
-                    currentPhotoPath?.let {
-                        insert(it)
+                    currentPhotoPath?.let { path ->
+                        File(path).let { file ->
+                            insert(file)
+                            file.delete()
+                        }
                     }
                 }
             }
@@ -120,21 +145,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun insert(filePath: String) {
-        val file = File(filePath)
+    private fun insert(file: File) {
         val values = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, file.name)
             put(MediaStore.Images.Media.MIME_TYPE, "image/jpg")
-            if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 put(MediaStore.Images.Media.IS_PENDING, 1)
             }
         }
-        val item: Uri = contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)!!
-        Log.i("TTTTTTTTTTTTTTTTTTTT", "insert(): uri = $item")
-        contentResolver.openFileDescriptor(item, "w", null)?.use {pfd->
+        val uri: Uri =
+            contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)!!
+        Log.i("TTTTTTTTTTTTTTTTTTTT", "insert(): uri = $uri")
+        contentResolver.openFileDescriptor(uri, "w", null)?.use { pfd ->
             FileOutputStream(pfd.fileDescriptor).use { fileOutput ->
                 BufferedOutputStream(fileOutput).use { bufferedOutput ->
-                    FileInputStream(file).use { fileInput->
+                    FileInputStream(file).use { fileInput ->
                         BufferedInputStream(fileInput).use { bufferedInput ->
                             val byteArray = ByteArray(1024)
                             while (bufferedInput.read(byteArray) != -1) {
@@ -145,30 +170,26 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             values.clear()
             values.put(MediaStore.Images.Media.IS_PENDING, 0)
-            contentResolver.update(item, values, null, null)
+            contentResolver.update(uri, values, null, null)
         }
     }
 
-    private fun checkPermission() {
-        TedPermission.with(this)
+    private fun checkPermission(context: Context, list: Array<String>) {
+        TedPermission.with(context)
             .setPermissionListener(object : PermissionListener {
                 override fun onPermissionGranted() {
-                    Toast.makeText(this@MainActivity, "권한 허용", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "권한 허용", Toast.LENGTH_SHORT).show()
                 }
 
                 override fun onPermissionDenied(deniedPermissions: List<String>) {
-                    Toast.makeText(this@MainActivity, "권한 거부", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(context, "권한 거부", Toast.LENGTH_SHORT).show()
                 }
             })
             .setDeniedMessage("If you reject permission,you can not use this service\n\nPlease turn on permissions at [Setting] > [Permission]")
-            .setPermissions(
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE,
-                Manifest.permission.CAMERA
-            )
+            .setPermissions(*list)
             .check()
     }
 }
