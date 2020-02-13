@@ -20,5 +20,9 @@ class MainActivity : AppCompatActivity() {
         goMyTest.setOnClickListener {
             startActivity(Intent(this, CoordinatorActivity::class.java))
         }
+
+        goScroll.setOnClickListener {
+            startActivity(Intent(this, ScrollingActivity::class.java))
+        }
     }
 }
