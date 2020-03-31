@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.os.Environment
 import android.provider.MediaStore
 import android.util.Log
+import android.webkit.URLUtil
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
@@ -40,7 +41,7 @@ class MainActivity : AppCompatActivity() {
                 Manifest.permission.CAMERA
             )
         )
-        val url = "https://cdn.icon-icons.com/image-packs/windowsicon_iconset_43.png"
+        val url = "https://lh3.googleusercontent.com/proxy/KAathCkEDGhqbvgtfeJt6UD7GdpSS7RpnU7H9I-6EH1UHqQWPCFdRlzrjz0l_ac6zvGQTcb9VkhvfgTuNV3IpHEhRceac6NqHEuENomhl6l0yigqY6CX8i5PfT_eAFupihQ2ORhw8w"
         Glide.with(this).load(url).into(image)
 
 //        MediaStore.Images.Media._ID
@@ -101,9 +102,10 @@ class MainActivity : AppCompatActivity() {
                             "TTTTTTTTTTTTTTTTTTTT",
                             "onActivityResult() : From Gallery : intent.Uri = $uri\n" +
                                     "ContentUris = ${ContentUris.parseId(uri)}\n" +
-                                    "ExternalUri = ${MediaStore.Images.Media.EXTERNAL_CONTENT_URI}"
+                                    "ExternalUri = ${MediaStore.Images.Media.EXTERNAL_CONTENT_URI}\n" +
+                                    "check content url = ${URLUtil.isContentUrl(uri.toString())}\n" +
+                                    "check http uri = ${URLUtil.isHttpUrl(uri.toString())}"
                         )
-
                         Glide.with(this).load(uri).into(image)
                     }
                 }
