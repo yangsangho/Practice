@@ -64,9 +64,9 @@ class HamcrestTest {
         assertThat("aa", equalTo("aa"))
     }
 
-    @Test
+    @Test(expected = AssertionError::class)
     fun instanceOfTest() {
-        assertThat(2, instanceOf(String::class.java))   // Error
+        assertThat(2, instanceOf(String::class.java))
     }
 
     @Test
